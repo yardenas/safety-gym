@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+from dm_control import suite
 import gym
 import gym.spaces
 import numpy as np
