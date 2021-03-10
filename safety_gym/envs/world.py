@@ -5,7 +5,7 @@ import xmltodict
 import numpy as np
 from copy import deepcopy
 from collections import OrderedDict
-from mujoco_py import const, load_model_from_path, load_model_from_xml, MjSim, MjViewer, MjRenderContextOffscreen
+from mujoco_py import const, load_model_from_path, load_model_from_xml, MjSim
 from dm_control.mujoco import Physics
 
 import safety_gym.bridges

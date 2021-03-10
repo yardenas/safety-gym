@@ -7,7 +7,6 @@ from PIL import Image
 from copy import deepcopy
 from collections import OrderedDict
 import mujoco_py
-from mujoco_py import MjViewer, MujocoException, const, MjRenderContextOffscreen
 
 from safety_gym.envs.world import World, Robot
 
