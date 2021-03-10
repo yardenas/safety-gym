@@ -5,8 +5,9 @@ import xmltodict
 import numpy as np
 from copy import deepcopy
 from collections import OrderedDict
+import dm_control
 from mujoco_py import const, load_model_from_path, load_model_from_xml, MjSim
-from dm_control.mujoco import Physics
+
 
 import safety_gym.bridges
 import safety_gym
@@ -287,7 +288,7 @@ class World:
         # print(xmltodict.unparse(self.xml, pretty=True))
         self.xml_string = xmltodict.unparse(self.xml)
         if self._backend == 'dm_control':
-            self.sim = Physics.from_xml_string(self.xml_string)
+            self.sim = dm_control.mujoco.Physics.from_xml_string(self.xml_string)
             self.model = safety_gym.bridges.ModelBridge(self.sim.model)
             self._data = safety_gym.bridges.DataBridge(self.sim.data, self.sim.model)
         else:
