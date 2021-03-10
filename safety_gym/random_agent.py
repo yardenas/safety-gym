@@ -5,6 +5,8 @@ import gym
 import safety_gym  # noqa
 import numpy as np  # noqa
 
+import matplotlib.pyplot as plt
+
 def run_random(env_name):
     env = gym.make(env_name)
     obs = env.reset()
@@ -23,7 +25,9 @@ def run_random(env_name):
         # print('reward', reward)
         ep_ret += reward
         ep_cost += info.get('cost', 0)
-        env.render()
+        img = env.render()
+        plt.imshow(img)
+        plt.pause(0.01)
 
 
 if __name__ == '__main__':

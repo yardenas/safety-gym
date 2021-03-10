@@ -6,9 +6,12 @@ import numpy as np
 from copy import deepcopy
 from collections import OrderedDict
 from mujoco_py import const, load_model_from_path, load_model_from_xml, MjSim, MjViewer, MjRenderContextOffscreen
+from dm_control.mujoco import Physics
 
+import safety_gym.bridges
 import safety_gym
 import sys
+
 
 '''
 Tools that allow the Safety Gym Engine to interface to MuJoCo.
@@ -68,7 +71,7 @@ class World:
         'observe_vision': False,
     }
 
-    def __init__(self, config={}, render_context=None):
+    def __init__(self, config={}, render_context=None, backend='mujoco_py'):
         ''' config - JSON string or dict of configuration.  See self.parse() '''
         self.parse(config)  # Parse configuration
         self.first_reset = True
@@ -76,6 +79,7 @@ class World:
         self.render_context = render_context
         self.update_viewer_sim = False
         self.robot = Robot(self.robot_base)
+        self._backend = backend
 
     def parse(self, config):
         ''' Parse a config dict - see self.DEFAULT for description '''
@@ -88,7 +92,10 @@ class World:
     @property
     def data(self):
         ''' Helper to get the simulation data instance '''
-        return self.sim.data
+        if self._backend == 'dm_control':
+            return self._data
+        else:
+            return self.sim.data
 
     # TODO: remove this when mujoco-py fix is merged and a new version is pushed
     # https://github.com/openai/mujoco-py/pull/354
@@ -279,8 +286,13 @@ class World:
         # Instantiate simulator
         # print(xmltodict.unparse(self.xml, pretty=True))
         self.xml_string = xmltodict.unparse(self.xml)
-        self.model = load_model_from_xml(self.xml_string)
-        self.sim = MjSim(self.model)
+        if self._backend == 'dm_control':
+            self.sim = Physics.from_xml_string(self.xml_string)
+            self.model = safety_gym.bridges.ModelBridge(self.sim.model)
+            self._data = safety_gym.bridges.DataBridge(self.sim.data, self.sim.model)
+        else:
+            self.model = load_model_from_xml(self.xml_string)
+            self.sim = MjSim(self.model)
 
         # Add render contexts to newly created sim
         if self.render_context is None and self.observe_vision:
