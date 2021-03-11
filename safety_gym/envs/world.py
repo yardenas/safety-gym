@@ -5,6 +5,7 @@ import xmltodict
 import numpy as np
 from copy import deepcopy
 from collections import OrderedDict
+from dm_control import suite
 import dm_control
 from mujoco_py import const, load_model_from_path, load_model_from_xml, MjSim
 
