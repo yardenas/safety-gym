@@ -296,15 +296,6 @@ class World:
             self.model = load_model_from_xml(self.xml_string)
             self.sim = MjSim(self.model)
 
-        # Add render contexts to newly created sim
-        if self.render_context is None and self.observe_vision:
-            render_context = MjRenderContextOffscreen(self.sim, device_id=-1, quiet=True)
-            render_context.vopt.geomgroup[:] = 1
-            self.render_context = render_context
-
-        if self.render_context is not None:
-            self.render_context.update_sim(self.sim)
-
         # Recompute simulation intrinsics from new position
         self.sim.forward()
 
