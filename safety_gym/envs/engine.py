@@ -7,8 +7,9 @@ from PIL import Image
 from copy import deepcopy
 from collections import OrderedDict
 import mujoco_py
-
+from dm_control.mujoco.wrapper import MjvOption
 from safety_gym.envs.world import World, Robot
+from PIL import ImageOps
 
 import sys
 
@@ -872,6 +873,8 @@ class Engine(gym.Env, gym.utils.EzPickle):
 
         # Save last subtree center of mass
         self.last_subtreecom = self.world.get_sensor('subtreecom')
+        self._vis_opt = MjvOption()
+        self._vis_opt.geomgroup[:] = 1
 
     def reset(self):
         ''' Reset the physics simulation and return observation '''
@@ -962,8 +965,9 @@ class Engine(gym.Env, gym.utils.EzPickle):
         # Get a render context so we can
         rows, cols = self.vision_size
         width, height = cols, rows
-        vision = self.sim.render(width, height, camera_id='vision')
-        return np.array(vision, dtype='float32') / 255
+        vision = self.sim.render(width, height, camera_id='vision', scene_option=self._vis_opt)
+        vision = ImageOps.flip(Image.fromarray(vision))
+        return np.asarray(vision, dtype='float32') / 255
 
     def obs_lidar(self, positions, group):
         '''
