@@ -1430,7 +1430,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
                height=DEFAULT_HEIGHT
                ):
         ''' Render the environment to the screen '''
-        return self.sim.render(height, width, camera_id=1)
+        return self.sim.render(height, width, camera_id='track', scene_option=self._vis_opt)
         # if self.viewer is None or mode!=self._old_render_mode:
         #     # Set camera if specified
         #     if mode == 'human':
