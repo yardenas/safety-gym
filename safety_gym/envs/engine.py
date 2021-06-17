@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 
 from dm_control import suite
+from dm_control.mujoco.wrapper.core import Error as MujocoException
 import gym
 import gym.spaces
 import numpy as np
@@ -1430,7 +1431,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
                height=DEFAULT_HEIGHT
                ):
         ''' Render the environment to the screen '''
-        return self.sim.render(height, width, camera_id='track', scene_option=self._vis_opt)
+        return self.sim.render(height, width, camera_id='vision', scene_option=self._vis_opt)
         # if self.viewer is None or mode!=self._old_render_mode:
         #     # Set camera if specified
         #     if mode == 'human':

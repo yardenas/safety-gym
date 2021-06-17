@@ -36,6 +36,15 @@ class DataBridge(cymj.PyMjData):
     def ctrl(self):
         return self._data.ctrl
 
+    @property
+    def time(self):
+        return self._data.time
+
+    def set_mocap_pos(self, name, value):
+        body_id = self._model.name2id(name, 'body')
+        mocap_id = self._model.body_mocapid[body_id]
+        self._data.mocap_pos[mocap_id] = value
+
 
 
 
