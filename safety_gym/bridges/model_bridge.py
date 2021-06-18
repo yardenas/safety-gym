@@ -15,6 +15,9 @@ class ModelBridge(cymj.PyMjModel):
     def geom_id2name(self, id):
         return self._model.id2name(id, 'geom')
 
+    def geom_name2id(self, name):
+        return self._model.name2id(name, 'geom')
+
     @property
     def sensor_adr(self):
         return self._model.sensor_adr
