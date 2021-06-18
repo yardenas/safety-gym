@@ -314,6 +314,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
 
         self.viewer = None
         self.world = None
+        self.goal_button = None
         self.clear()
 
         self.seed(self._seed)
@@ -809,7 +810,12 @@ class Engine(gym.Env, gym.utils.EzPickle):
             self.last_box_goal = self.dist_box_goal()
         elif self.task == 'button':
             assert self.buttons_num > 0, 'Must have at least one button'
+            if self.goal_button is not None:
+                self.sim.model.geom_rgba[
+                    self.model.geom_name2id(f'button{self.goal_button}')] = COLOR_BUTTON
             self.build_goal_button()
+            self.sim.model.geom_rgba[
+                self.model.geom_name2id(f'button{self.goal_button}')] = COLOR_GOAL
             self.last_dist_goal = self.dist_goal()
         elif self.task in ['x', 'z']:
             self.last_robot_com = self.world.robot_com()
