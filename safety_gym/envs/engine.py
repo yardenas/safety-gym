@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-
+import dm_control.rl.control
 from dm_control import suite
 from dm_control.mujoco.wrapper.core import Error as MujocoException
 import gym
@@ -1276,6 +1276,10 @@ class Engine(gym.Env, gym.utils.EzPickle):
                 print('MujocoException', me)
                 exception = True
                 break
+            except dm_control.rl.control.PhysicsError as er:
+                print('PhysicsError', me)
+                exception = True
+                break
         if exception:
             self.done = True
             reward = self.reward_exception
@@ -1437,7 +1441,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
                height=DEFAULT_HEIGHT
                ):
         ''' Render the environment to the screen '''
-        return self.sim.render(height, width, camera_id=1, scene_option=self._vis_opt)
+        return self.sim.render(height, width, camera_id='vision', scene_option=self._vis_opt)
         # if self.viewer is None or mode!=self._old_render_mode:
         #     # Set camera if specified
         #     if mode == 'human':
