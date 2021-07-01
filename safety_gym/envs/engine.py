@@ -1277,7 +1277,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
                 exception = True
                 break
             except dm_control.rl.control.PhysicsError as er:
-                print('PhysicsError', me)
+                print('PhysicsError', er)
                 exception = True
                 break
         if exception:
