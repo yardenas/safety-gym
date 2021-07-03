@@ -1284,6 +1284,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
             self.done = True
             reward = self.reward_exception
             info['cost_exception'] = 1.0
+            info['cost'] = 0.0
         else:
             self.sim.forward()  # Needed to get sensor readings correct!
 
