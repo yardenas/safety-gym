@@ -702,7 +702,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
                       'rot': self.random_rot(),
                       'density': self.box_density,
                       'group': GROUP_BOX,
-                      'rgba': COLOR_BOX * [1, 1, 1, 0.25]}
+                      'rgba': COLOR_BOX}
             world_config['objects']['box'] = object
 
         # Extra geoms (immovable objects) to add to the scene
