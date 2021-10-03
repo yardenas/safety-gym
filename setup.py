@@ -18,6 +18,5 @@ setup(
         'numpy>=1.17.4',
         'xmltodict~=0.12.0',
     ],
-    package_data={'': ['*','*/*','*/*/*']},
-    include_package_data=True
+    package_data={'': ['*.xml']}
 )
