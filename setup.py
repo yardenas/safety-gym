@@ -18,7 +18,7 @@ setup(
         'numpy>=1.17.4',
         'xmltodict~=0.12.0',
     ],
-    package_data={'': ['xmls/car.xml',
-                       'xmls/doggo.xml',
-                       'xmls/point.xml']}
+    package_data={'safety_gym': ['xmls/car.xml',
+                                 'xmls/doggo.xml',
+                                 'xmls/point.xml']}
 )
