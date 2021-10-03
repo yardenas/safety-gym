@@ -18,5 +18,7 @@ setup(
         'numpy>=1.17.4',
         'xmltodict~=0.12.0',
     ],
-    package_data={'': ['*.xml']}
+    package_data={'': ['xmls/car.xml',
+                       'xmls/doggo.xml',
+                       'xmls/point.xml']}
 )
