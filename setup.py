@@ -10,7 +10,7 @@ assert sys.version_info.major == 3 and sys.version_info.minor >= 6, \
 
 setup(
     name='safety_gym',
-    packages=['safety_gym', 'safety_gym.envs', 'safety_gym.bridges'],
+    packages=['safety_gym', 'safety_gym.envs', 'safety_gym.bridges', 'safety_gym.xmls'],
     install_requires=[
         'gym>=0.15.3',
         'joblib~=0.14.0',
