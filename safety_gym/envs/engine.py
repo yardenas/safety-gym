@@ -720,7 +720,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
                     'contype': 0,
                     'conaffinity': 0,
                     'group': GROUP_GOAL,
-                    'rgba': COLOR_GOAL * [1, 1, 1, 0.25]}  # transparent
+                    'rgba': self.color_goal * [1, 1, 1, 0.25]}  # transparent
             world_config['geoms']['goal'] = geom
         if self.hazards_num:
             for i in range(self.hazards_num):
@@ -819,7 +819,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
                     self.model.geom_name2id(f'button{self.goal_button}')] = COLOR_BUTTON
             self.build_goal_button()
             self.sim.model.geom_rgba[
-                self.model.geom_name2id(f'button{self.goal_button}')] = COLOR_GOAL
+                self.model.geom_name2id(f'button{self.goal_button}')] = self.color_goal
             self.last_dist_goal = self.dist_goal()
         elif self.task in ['x', 'z']:
             self.last_robot_com = self.world.robot_com()
@@ -1484,9 +1484,9 @@ class Engine(gym.Env, gym.utils.EzPickle):
                 offset += self.render_lidar_offset_delta
             if 'goal_lidar' in self.obs_space_dict or 'goal_compass' in self.obs_space_dict:
                 if 'goal_lidar' in self.obs_space_dict:
-                    self.render_lidar([self.goal_pos], COLOR_GOAL, offset, GROUP_GOAL)
+                    self.render_lidar([self.goal_pos], self.color_goal, offset, GROUP_GOAL)
                 if 'goal_compass' in self.obs_space_dict:
-                    self.render_compass(self.goal_pos, COLOR_GOAL, offset)
+                    self.render_compass(self.goal_pos, self.color_goal, offset)
                 offset += self.render_lidar_offset_delta
             if 'buttons_lidar' in self.obs_space_dict:
                 self.render_lidar(self.buttons_pos, COLOR_BUTTON, offset, GROUP_BUTTON)
