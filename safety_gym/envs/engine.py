@@ -9,8 +9,10 @@ from PIL import Image
 from copy import deepcopy
 from collections import OrderedDict
 import mujoco_py
+from mujoco_py import MjViewer, MujocoException, const, MjRenderContextOffscreen
 from dm_control.mujoco.wrapper import MjvOption
 from safety_gym.envs.world import World, Robot
+from safety_gym.envs.controller import Controller
 from PIL import ImageOps
 
 import sys
@@ -156,7 +158,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         'render_lidar_offset_delta': 0.06, 
 
         # Vision observation parameters
-        'vision_size': (60, 40),  # Size (width, height) of vision observation; gets flipped internally to (rows, cols) format
+        'vision_size': (64, 44),  # Size (width, height) of vision observation; gets flipped internally to (rows, cols) format
         'vision_render': True,  # Render vision observation in the viewer
         'vision_render_size': (300, 200),  # Size to render the vision in the viewer
 
@@ -178,6 +180,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         'goal_locations': [],  # Fixed locations to override placements
         'goal_keepout': 0.4,  # Keepout radius when placing goals
         'goal_size': 0.3,  # Radius of the goal area (if using task 'goal')
+        'color_goal': COLOR_GOAL,
 
         # Box parameters (only used if task == 'push')
         'box_placements': None,  # Box placements list (defaults to full extents)
@@ -319,6 +322,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
 
         self.seed(self._seed)
         self.done = True
+        self.controller = Controller()
 
     def parse(self, config):
         ''' Parse a config dict - see self.DEFAULT for description '''
@@ -897,6 +901,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         self.build()
         # Save the layout at reset
         self.reset_layout = deepcopy(self.layout)
+        self.controller.reset()
 
         cost = self.cost()
         assert cost['cost'] == 0, f'World has starting cost! {cost}'
@@ -973,7 +978,10 @@ class Engine(gym.Env, gym.utils.EzPickle):
         # Get a render context so we can
         rows, cols = self.vision_size
         width, height = cols, rows
-        vision = self.sim.render(width, height, camera_id='vision', scene_option=self._vis_opt)
+        if self.backend == 'dm_control':
+            vision = self.sim.render(width, height, camera_id='vision', scene_option=self._vis_opt)
+        else:
+            vision = self.sim.render(width, height, camera_name='vision')
         vision = ImageOps.flip(Image.fromarray(vision))
         return np.asarray(vision, dtype='float32') / 255
 
@@ -1137,7 +1145,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
                 flat_obs[offset:offset + k_size] = obs[k].flat
                 offset += k_size
             obs = flat_obs
-        assert self.observation_space.contains(obs), f'Bad obs {obs} {self.observation_space}'
+        # assert self.observation_space.contains(obs), f'Bad obs {obs} {self.observation_space}'
         return obs
 
 
@@ -1442,86 +1450,87 @@ class Engine(gym.Env, gym.utils.EzPickle):
                height=DEFAULT_HEIGHT
                ):
         ''' Render the environment to the screen '''
-        return self.sim.render(height, width, camera_id=1, scene_option=self._vis_opt)
-        # if self.viewer is None or mode!=self._old_render_mode:
-        #     # Set camera if specified
-        #     if mode == 'human':
-        #         self.viewer = MjViewer(self.sim)
-        #         self.viewer.cam.fixedcamid = -1
-        #         self.viewer.cam.type = const.CAMERA_FREE
-        #     else:
-        #         self.viewer = MjRenderContextOffscreen(self.sim)
-        #         self.viewer._hide_overlay = True
-        #         self.viewer.cam.fixedcamid = camera_id #self.model.camera_name2id(mode)
-        #         self.viewer.cam.type = const.CAMERA_FIXED
-        #     self.viewer.render_swap_callback = self.render_swap_callback
-        #     # Turn all the geom groups on
-        #     self.viewer.vopt.geomgroup[:] = 1
-        #     self._old_render_mode = mode
-        # self.viewer.update_sim(self.sim)
-        #
-        # if camera_id is not None:
-        #     # Update camera if desired
-        #     self.viewer.cam.fixedcamid = camera_id
-        #
-        # # Lidar markers
-        # if self.render_lidar_markers:
-        #     offset = self.render_lidar_offset_init  # Height offset for successive lidar indicators
-        #     if 'box_lidar' in self.obs_space_dict or 'box_compass' in self.obs_space_dict:
-        #         if 'box_lidar' in self.obs_space_dict:
-        #             self.render_lidar([self.box_pos], COLOR_BOX, offset, GROUP_BOX)
-        #         if 'box_compass' in self.obs_space_dict:
-        #             self.render_compass(self.box_pos, COLOR_BOX, offset)
-        #         offset += self.render_lidar_offset_delta
-        #     if 'goal_lidar' in self.obs_space_dict or 'goal_compass' in self.obs_space_dict:
-        #         if 'goal_lidar' in self.obs_space_dict:
-        #             self.render_lidar([self.goal_pos], COLOR_GOAL, offset, GROUP_GOAL)
-        #         if 'goal_compass' in self.obs_space_dict:
-        #             self.render_compass(self.goal_pos, COLOR_GOAL, offset)
-        #         offset += self.render_lidar_offset_delta
-        #     if 'buttons_lidar' in self.obs_space_dict:
-        #         self.render_lidar(self.buttons_pos, COLOR_BUTTON, offset, GROUP_BUTTON)
-        #         offset += self.render_lidar_offset_delta
-        #     if 'circle_lidar' in self.obs_space_dict:
-        #         self.render_lidar([ORIGIN_COORDINATES], COLOR_CIRCLE, offset, GROUP_CIRCLE)
-        #         offset += self.render_lidar_offset_delta
-        #     if 'walls_lidar' in self.obs_space_dict:
-        #         self.render_lidar(self.walls_pos, COLOR_WALL, offset, GROUP_WALL)
-        #         offset += self.render_lidar_offset_delta
-        #     if 'hazards_lidar' in self.obs_space_dict:
-        #         self.render_lidar(self.hazards_pos, COLOR_HAZARD, offset, GROUP_HAZARD)
-        #         offset += self.render_lidar_offset_delta
-        #     if 'pillars_lidar' in self.obs_space_dict:
-        #         self.render_lidar(self.pillars_pos, COLOR_PILLAR, offset, GROUP_PILLAR)
-        #         offset += self.render_lidar_offset_delta
-        #     if 'gremlins_lidar' in self.obs_space_dict:
-        #         self.render_lidar(self.gremlins_obj_pos, COLOR_GREMLIN, offset, GROUP_GREMLIN)
-        #         offset += self.render_lidar_offset_delta
-        #     if 'vases_lidar' in self.obs_space_dict:
-        #         self.render_lidar(self.vases_pos, COLOR_VASE, offset, GROUP_VASE)
-        #         offset += self.render_lidar_offset_delta
-        #
-        # # Add goal marker
-        # if self.task == 'button':
-        #     self.render_area(self.goal_pos, self.buttons_size * 2, COLOR_BUTTON, 'goal', alpha=0.1)
-        #
-        # # Add indicator for nonzero cost
-        # if self._cost.get('cost', 0) > 0:
-        #     self.render_sphere(self.world.robot_pos(), 0.25, COLOR_RED, alpha=.5)
-        #
-        # # Draw vision pixels
-        # if self.observe_vision and self.vision_render:
-        #     vision = self.obs_vision()
-        #     vision = np.array(vision * 255, dtype='uint8')
-        #     vision = Image.fromarray(vision).resize(self.vision_render_size)
-        #     vision = np.array(vision, dtype='uint8')
-        #     self.save_obs_vision = vision
-        #
-        # if mode=='human':
-        #     self.viewer.render()
-        # elif mode=='rgb_array':
-        #     self.viewer.render(width, height)
-        #     data = self.viewer.read_pixels(width, height, depth=False)
-        #     self.viewer._markers[:] = []
-        #     self.viewer._overlay.clear()
-        #     return data[::-1, :, :]
+        if self.backend == 'dm_control':
+            return self.sim.render(height, width, camera_id=1, scene_option=self._vis_opt)
+        if self.viewer is None or mode!=self._old_render_mode:
+            # Set camera if specified
+            if mode == 'human':
+                self.viewer = MjViewer(self.sim)
+                self.viewer.cam.fixedcamid = 2
+                self.viewer.cam.type = const.CAMERA_FIXED
+            else:
+                self.viewer = MjRenderContextOffscreen(self.sim)
+                self.viewer._hide_overlay = True
+                self.viewer.cam.fixedcamid = 2
+                self.viewer.cam.type = const.CAMERA_FIXED
+            self.viewer.render_swap_callback = self.render_swap_callback
+            # Turn all the geom groups on
+            self.viewer.vopt.geomgroup[:] = 1
+            self._old_render_mode = mode
+        self.viewer.update_sim(self.sim)
+
+        if camera_id is not None:
+            # Update camera if desired
+            self.viewer.cam.fixedcamid = camera_id
+
+        # Lidar markers
+        if self.render_lidar_markers:
+            offset = self.render_lidar_offset_init  # Height offset for successive lidar indicators
+            if 'box_lidar' in self.obs_space_dict or 'box_compass' in self.obs_space_dict:
+                if 'box_lidar' in self.obs_space_dict:
+                    self.render_lidar([self.box_pos], COLOR_BOX, offset, GROUP_BOX)
+                if 'box_compass' in self.obs_space_dict:
+                    self.render_compass(self.box_pos, COLOR_BOX, offset)
+                offset += self.render_lidar_offset_delta
+            if 'goal_lidar' in self.obs_space_dict or 'goal_compass' in self.obs_space_dict:
+                if 'goal_lidar' in self.obs_space_dict:
+                    self.render_lidar([self.goal_pos], COLOR_GOAL, offset, GROUP_GOAL)
+                if 'goal_compass' in self.obs_space_dict:
+                    self.render_compass(self.goal_pos, COLOR_GOAL, offset)
+                offset += self.render_lidar_offset_delta
+            if 'buttons_lidar' in self.obs_space_dict:
+                self.render_lidar(self.buttons_pos, COLOR_BUTTON, offset, GROUP_BUTTON)
+                offset += self.render_lidar_offset_delta
+            if 'circle_lidar' in self.obs_space_dict:
+                self.render_lidar([ORIGIN_COORDINATES], COLOR_CIRCLE, offset, GROUP_CIRCLE)
+                offset += self.render_lidar_offset_delta
+            if 'walls_lidar' in self.obs_space_dict:
+                self.render_lidar(self.walls_pos, COLOR_WALL, offset, GROUP_WALL)
+                offset += self.render_lidar_offset_delta
+            if 'hazards_lidar' in self.obs_space_dict:
+                self.render_lidar(self.hazards_pos, COLOR_HAZARD, offset, GROUP_HAZARD)
+                offset += self.render_lidar_offset_delta
+            if 'pillars_lidar' in self.obs_space_dict:
+                self.render_lidar(self.pillars_pos, COLOR_PILLAR, offset, GROUP_PILLAR)
+                offset += self.render_lidar_offset_delta
+            if 'gremlins_lidar' in self.obs_space_dict:
+                self.render_lidar(self.gremlins_obj_pos, COLOR_GREMLIN, offset, GROUP_GREMLIN)
+                offset += self.render_lidar_offset_delta
+            if 'vases_lidar' in self.obs_space_dict:
+                self.render_lidar(self.vases_pos, COLOR_VASE, offset, GROUP_VASE)
+                offset += self.render_lidar_offset_delta
+
+        # Add goal marker
+        if self.task == 'button':
+            self.render_area(self.goal_pos, self.buttons_size * 2, COLOR_BUTTON, 'goal', alpha=0.1)
+
+        # Add indicator for nonzero cost
+        if self._cost.get('cost', 0) > 0:
+            self.render_sphere(self.world.robot_pos(), 0.25, COLOR_RED, alpha=.5)
+
+        # Draw vision pixels
+        if self.observe_vision and self.vision_render:
+            vision = self.obs_vision()
+            vision = np.array(vision * 255, dtype='uint8')
+            vision = Image.fromarray(vision).resize(self.vision_render_size)
+            vision = np.array(vision, dtype='uint8')
+            self.save_obs_vision = vision
+
+        if mode=='human':
+            self.viewer.render()
+        elif mode=='rgb_array':
+            self.viewer.render(width, height)
+            data = self.viewer.read_pixels(width, height, depth=False)
+            self.viewer._markers[:] = []
+            self.viewer._overlay.clear()
+            return data[::-1, :, :]
