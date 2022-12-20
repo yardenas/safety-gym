@@ -357,3 +357,11 @@ circle_dict = {
 circle_dict.update(zero_base_dict)
 bench_circle_base = bench_base.copy('Circle', circle_dict)
 bench_circle_base.register('')
+
+easy = goal2.copy()
+hard = goal2.copy()
+easy['goal_size'] = 0.5
+easy['goal_keepout'] = 0.505
+
+bench_goal_base.register('Easy', easy)
+bench_goal_base.register('Hard', hard)
