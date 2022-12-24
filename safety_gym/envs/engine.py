@@ -1034,7 +1034,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
             pos = np.asarray(pos)
             if pos.shape == (3,):
                 pos = pos[:2]  # Truncate Z coordinate
-            z = np.complex(*self.ego_xy(pos))  # X, Y as real, imaginary components
+            z = complex(*self.ego_xy(pos))  # X, Y as real, imaginary components
             dist = np.abs(z)
             angle = np.angle(z) % (np.pi * 2)
             bin_size = (np.pi * 2) / self.lidar_num_bins
@@ -1137,7 +1137,6 @@ class Engine(gym.Env, gym.utils.EzPickle):
                 flat_obs[offset:offset + k_size] = obs[k].flat
                 offset += k_size
             obs = flat_obs
-        assert self.observation_space.contains(obs), f'Bad obs {obs} {self.observation_space}'
         return obs
 
 
