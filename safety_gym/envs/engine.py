@@ -565,7 +565,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         if not self.randomize_layout:
             self.rs = np.random.RandomState(0)
 
-        for _ in range(10000):
+        for _ in range(1000000):
             if self.sample_layout():
                 break
         else:
@@ -841,7 +841,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         # Resample until goal is compatible with layout
         if 'goal' in self.layout:
             del self.layout['goal']
-        for _ in range(10000):  # Retries
+        for _ in range(1000000):  # Retries
             if self.sample_goal_position():
                 break
         else:
