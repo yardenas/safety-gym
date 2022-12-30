@@ -585,7 +585,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         layout = {}
         for name, (placements, keepout) in self.placements.items():
             conflicted = True
-            for _ in range(100):
+            for _ in range(1000):
                 xy = self.draw_placement(placements, keepout)
                 if placement_is_valid(xy, layout):
                     conflicted = False
@@ -841,7 +841,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         # Resample until goal is compatible with layout
         if 'goal' in self.layout:
             del self.layout['goal']
-        for _ in range(1000000):  # Retries
+        for _ in range(10000000):  # Retries
             if self.sample_goal_position():
                 break
         else:
