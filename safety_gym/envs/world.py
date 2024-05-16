@@ -5,14 +5,11 @@ import xmltodict
 import numpy as np
 from copy import deepcopy
 from collections import OrderedDict
-from dm_control import suite
 import dm_control
-from mujoco_py import const, load_model_from_path, load_model_from_xml, MjSim
-
+from dm_control import mujoco
 
 import safety_gym.bridges
 import safety_gym
-import sys
 
 
 '''
@@ -73,7 +70,7 @@ class World:
         'observe_vision': False,
     }
 
-    def __init__(self, config={}, render_context=None, backend='mujoco_py'):
+    def __init__(self, config={}, render_context=None):
         ''' config - JSON string or dict of configuration.  See self.parse() '''
         self.parse(config)  # Parse configuration
         self.first_reset = True
@@ -81,7 +78,6 @@ class World:
         self.render_context = render_context
         self.update_viewer_sim = False
         self.robot = Robot(self.robot_base)
-        self._backend = backend
 
     def parse(self, config):
         ''' Parse a config dict - see self.DEFAULT for description '''
@@ -94,10 +90,7 @@ class World:
     @property
     def data(self):
         ''' Helper to get the simulation data instance '''
-        if self._backend == 'dm_control':
-            return self._data
-        else:
-            return self.sim.data
+        return self._data
 
     # TODO: remove this when mujoco-py fix is merged and a new version is pushed
     # https://github.com/openai/mujoco-py/pull/354
@@ -288,13 +281,9 @@ class World:
         # Instantiate simulator
         # print(xmltodict.unparse(self.xml, pretty=True))
         self.xml_string = xmltodict.unparse(self.xml)
-        if self._backend == 'dm_control':
-            self.sim = dm_control.mujoco.Physics.from_xml_string(self.xml_string)
-            self.model = safety_gym.bridges.ModelBridge(self.sim.model)
-            self._data = safety_gym.bridges.DataBridge(self.sim.data, self.sim.model)
-        else:
-            self.model = load_model_from_xml(self.xml_string)
-            self.sim = MjSim(self.model)
+        self.sim = dm_control.mujoco.Physics.from_xml_string(self.xml_string)
+        self.model = safety_gym.bridges.ModelBridge(self.sim.model)
+        self._data = safety_gym.bridges.DataBridge(self.sim.data, self.sim.model)
 
         # Recompute simulation intrinsics from new position
         self.sim.forward()
@@ -317,24 +306,6 @@ class World:
             self.build()
         # set flag so that renderer knows to update sim
         self.update_viewer_sim = True
-
-    def render(self, mode='human'):
-        ''' Render the environment to the screen '''
-        if self.viewer is None:
-            self.viewer = MjViewer(self.sim)
-            # Turn all the geom groups on
-            self.viewer.vopt.geomgroup[:] = 1
-            # Set camera if specified
-            if mode == 'human':
-                self.viewer.cam.fixedcamid = -1
-                self.viewer.cam.type = const.CAMERA_FREE
-            else:
-                self.viewer.cam.fixedcamid = self.model.camera_name2id(mode)
-                self.viewer.cam.type = const.CAMERA_FIXED
-        if self.update_viewer_sim:
-            self.viewer.update_sim(self.sim)
-            self.update_viewer_sim = False
-        self.viewer.render()
 
     def robot_com(self):
         ''' Get the position of the robot center of mass in the simulator world reference frame '''
@@ -371,51 +342,53 @@ class World:
 
 
 class Robot:
-    ''' Simple utility class for getting mujoco-specific info about a robot '''
-    def __init__(self, path):
-        base_path = os.path.join(BASE_DIR, path)
-        self.sim = MjSim(load_model_from_path(base_path))
-        self.sim.forward()
+  """ Simple utility class for getting mujoco-specific info about a robot """
 
-        # Needed to figure out z-height of free joint of offset body
-        self.z_height = self.sim.data.get_body_xpos('robot')[2]
-        # Get a list of geoms in the robot
-        self.geom_names = [n for n in self.sim.model.geom_names if n != 'floor']
-        # Needed to figure out the observation spaces
-        self.nq = self.sim.model.nq
-        self.nv = self.sim.model.nv
-        # Needed to figure out action space
-        self.nu = self.sim.model.nu
-        # Needed to figure out observation space
-        # See engine.py for an explanation for why we treat these separately
-        self.hinge_pos_names = []
-        self.hinge_vel_names = []
-        self.ballquat_names = []
-        self.ballangvel_names = []
-        self.sensor_dim = {}
-        for name in self.sim.model.sensor_names:
-            id = self.sim.model.sensor_name2id(name)
-            self.sensor_dim[name] = self.sim.model.sensor_dim[id]
-            sensor_type = self.sim.model.sensor_type[id]
-            if self.sim.model.sensor_objtype[id] == const.OBJ_JOINT:
-                joint_id = self.sim.model.sensor_objid[id]
-                joint_type = self.sim.model.jnt_type[joint_id]
-                if joint_type == const.JNT_HINGE:
-                    if sensor_type == const.SENS_JOINTPOS:
-                        self.hinge_pos_names.append(name)
-                    elif sensor_type == const.SENS_JOINTVEL:
-                        self.hinge_vel_names.append(name)
-                    else:
-                        t = self.sim.model.sensor_type[i]
-                        raise ValueError('Unrecognized sensor type {} for joint'.format(t))
-                elif joint_type == const.JNT_BALL:
-                    if sensor_type == const.SENS_BALLQUAT:
-                        self.ballquat_names.append(name)
-                    elif sensor_type == const.SENS_BALLANGVEL:
-                        self.ballangvel_names.append(name)
-                elif joint_type == const.JNT_SLIDE:
-                    # Adding slide joints is trivially easy in code,
-                    # but this removes one of the good properties about our observations.
-                    # (That we are invariant to relative whole-world transforms)
-                    # If slide joints are added we sould ensure this stays true!
-                    raise ValueError('Slide joints in robots not currently supported')
+  def __init__(self, path):
+    self.base_path = os.path.join(BASE_DIR, path)
+    self.sim = mujoco.Physics.from_xml_path(self.base_path)
+    self.sim.forward()
+
+    # Needed to figure out z-height of free joint of offset body
+    self.z_height = self.sim.named.data.xpos['robot'][2]
+    # Get a list of geoms in the robot
+    self.geom_names = set([
+        n for n in self.sim.named.data.geom_xpos.axes.row.names if n != 'floor'
+    ])
+    # Needed to figure out the observation spaces
+    self.nq = self.sim.model.nq
+    self.nv = self.sim.model.nv
+    # Needed to figure out action space
+    self.nu = self.sim.model.nu
+    # Needed to figure out observation space
+    self.hinge_pos_names = []
+    self.hinge_vel_names = []
+    self.ballquat_names = []
+    self.ballangvel_names = []
+    self.sensor_dim = {}
+
+    for name in self.sim.named.model.sensor_objtype.axes.row.names:
+      self.sensor_dim[name] = self.sim.named.model.sensor_dim[name]
+      sensor_type = self.sim.named.model.sensor_type[name]
+      if self.sim.named.model.sensor_objtype[name] == mujoco.mjtObj.mjOBJ_JOINT:
+        joint_id = self.sim.named.model.sensor_objid[name]
+        joint_type = self.sim.model.jnt_type[joint_id]
+        if joint_type == mujoco.mjtJoint.mjJNT_HINGE:
+          if sensor_type == mujoco.mjtSensor.mjSENS_JOINTPOS:
+            self.hinge_pos_names.append(name)
+          elif sensor_type == mujoco.mjtSensor.mjSENS_JOINTVEL:
+            self.hinge_vel_names.append(name)
+          else:
+            raise ValueError(
+                'Unrecognized sensor type {} for joint'.format(sensor_type))
+        elif joint_type == mujoco.mjtJoint.mjJNT_BALL:
+          if sensor_type == mujoco.mjtSensor.mjSENS_BALLQUAT:
+            self.ballquat_names.append(name)
+          elif sensor_type == mujoco.mjtSensor.mjSENS_BALLANGVEL:
+            self.ballangvel_names.append(name)
+        elif joint_type == mujoco.mjtJoint.mjJNT_SLIDE:
+          # Adding slide joints is trivially easy in code,
+          # but this removes one of the good properties about our observations.
+          # (That we are invariant to relative whole-world transforms)
+          # If slide joints are added we sould ensure this stays true!
+          raise ValueError('Slide joints in robots not currently supported')

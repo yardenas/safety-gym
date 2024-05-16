@@ -1,7 +1,6 @@
 from dm_control.mujoco.wrapper import MjData, MjModel
-from mujoco_py.builder import cymj
 
-class DataBridge(cymj.PyMjData):
+class DataBridge:
     def __init__(self, data: MjData, model: MjModel):
         self._data = data
         self._model = model

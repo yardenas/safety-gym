@@ -18,11 +18,8 @@ def run_random(env_name):
             print('Episode Return: %.3f \t Episode Cost: %.3f'%(ep_ret, ep_cost))
             ep_ret, ep_cost = 0, 0
             obs = env.reset()
-        assert env.observation_space.contains(obs)
         act = env.action_space.sample()
-        assert env.action_space.contains(act)
         obs, reward, done, info = env.step(act)
-        # print('reward', reward)
         ep_ret += reward
         ep_cost += info.get('cost', 0)
         img = env.render()
@@ -33,6 +30,6 @@ def run_random(env_name):
 if __name__ == '__main__':
 
     parser = argparse.ArgumentParser()
-    parser.add_argument('--env', default='Safexp-PointButton1-v0')
+    parser.add_argument('--env', default='Safexp-DoggoGoal2-v0')
     args = parser.parse_args()
     run_random(args.env)

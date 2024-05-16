@@ -14,7 +14,7 @@ setup(
     install_requires=[
         'gym',
         'joblib',
-        'mujoco_py',
+        'dm_control',
         'numpy',
         'xmltodict',
     ],

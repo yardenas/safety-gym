@@ -1,7 +1,6 @@
 from dm_control.mujoco.wrapper import MjModel
-from mujoco_py.builder import cymj
 
-class ModelBridge(cymj.PyMjModel):
+class ModelBridge:
     def __init__(self, model: MjModel):
         self._model = model
 
