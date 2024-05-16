@@ -275,7 +275,6 @@ class Engine(gym.Env, gym.utils.EzPickle):
         "frameskip_binom_n": 10,  # Number of draws trials in binomial distribution (max frameskip)
         "frameskip_binom_p": 1.0,  # Probability of trial return (controls distribution)
         "_seed": None,  # Random state seed (avoid name conflict with self.seed)
-        "backend": "dm_control",
     }
 
     def __init__(self, config={}):
@@ -318,18 +317,12 @@ class Engine(gym.Env, gym.utils.EzPickle):
     @property
     def model(self):
         """Helper to get the world's model instance"""
-        if self.backend == "dm_control":
-            return self.world.model
-        else:
-            return self.sim.model
+        return self.world.model
 
     @property
     def data(self):
         """Helper to get the world's simulation data instance"""
-        if self.backend == "dm_control":
-            return self.world.data
-        else:
-            return self.sim.data
+        return self.world.data
 
     @property
     def robot_pos(self):
@@ -950,7 +943,7 @@ class Engine(gym.Env, gym.utils.EzPickle):
         self.world_config_dict = self.build_world_config()
 
         if self.world is None:
-            self.world = World(self.world_config_dict, backend=self.backend)
+            self.world = World(self.world_config_dict)
             self.world.reset()
             self.world.build()
         else:
